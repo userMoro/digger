@@ -1,3 +1,40 @@
+#!/bin/bash
+
+text() {
+  style=0
+  if [[ "$1" == "bold" ]]; then
+    style=1
+  elif [[ "$1" == "underlined" ]]; then
+    style=4
+  elif [[ "$1" == "italics" ]]; then
+    style=3
+  fi
+
+  color=37
+  if [[ "$2" == "red" ]]; then
+    color=31
+  elif [[ "$2" == "yellow" ]]; then
+    color=33
+  elif [[ "$2" == "green" ]]; then
+    color=32
+  elif [[ "$2" == "blue" ]]; then
+    color=34
+  else 
+    color=37
+  fi
+
+  if [[ -z "$4" ]]; then
+    echo -e "\033[${style};${color}m$3\033[0m"
+  elif [[ "$4" == "-n" ]]; then
+    echo -e -n "\033[${style};${color}m$3\033[0m"
+  else
+    echo -e "\033[${style};${color}m$3\033[0m"
+  fi
+}
+
+# Usage: text "style" "color" "string" "-n"
+
+
 currentdir=()
 deeperdir=()
 stop=false
@@ -8,7 +45,7 @@ read -p "Enter the path of the directory where you want to start the research: "
 
 #controllo input
 if [[ ! -d "$directory" ]]; then
-    echo "Error: Directory not found: $directory"
+    text "" "red" "Error: Directory not found: $directory"
 else 
 #creazione primo livello di profondità in currentdir e scan per il file
     cd "$directory"
@@ -17,7 +54,7 @@ else
       if [ -f $first ]; then
         if [[ $first == $filename ]]; then
           file_path=$(pwd)/$first
-          echo -e "Found: $first\nPosition: $file_path"
+          text "" "green" "Found: $first\nPosition: $file_path"
           break
         fi
       elif [[ -d $first && $first != ".." && $first != "." ]]; then
@@ -38,7 +75,7 @@ else
             if [[ $any != "." && $any != ".." ]]; then
               if [[ -f $any && $any == $filename ]]; then
                 file_path=$(pwd)/$any
-                echo -e "Found: $any\nPosition: $file_path"
+                text "" "green" "Found: $any\nPosition: $file_path"
                 found=true
                 stop=true
                 break
@@ -54,7 +91,7 @@ else
       done
 #controllo se il livello di profondità successivo deeperdir è vuoto (fine ricerca)
       if [[ -z $deeperdir && $found == false ]]; then
-        echo "File not found"
+        text "" "red" "File not found"
         stop=true
       else 
       #imposto il livello appena creato a quello corrente da 
