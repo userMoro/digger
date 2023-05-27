@@ -32,69 +32,142 @@ text() {
   fi
 }
 
-# Usage: text "style" "color" "string" "-n"
 
+depth=$(awk -F/ '{print NF-1}' <<< "$path")
 
 currentdir=()
 deeperdir=()
 stop=false
 found=false
+err=false
+level=1
+count=0
 
-read -p "Enter the name of the file you are looking for: " filename
-read -p "Enter the path of the directory where you want to start the research: " directory
-
-#controllo input
-if [[ ! -d "$directory" ]]; then
-    text "" "red" "Error: Directory not found: $directory"
-else 
-#creazione primo livello di profondità in currentdir e scan per il file
-    cd "$directory"
-    output=$(ls -a)
-    for first in $output; do
-      if [ -f $first ]; then
-        if [[ $first == $filename ]]; then
-          file_path=$(pwd)/$first
-          text "" "green" "Found: $first\nPosition: $file_path"
-          break
-        fi
-      elif [[ -d $first && $first != ".." && $first != "." ]]; then
-        cd_path=$(pwd)/$first
-        currentdir+=($cd_path)
+while true
+do
+  echo
+  read -p "Enter the name of the file you are looking for: " filename
+  read -p "Enter the path of the directory where you want to start the research: " directory
+  echo
+  read -p "Do you want to exclude some folders from the research? (y) " exclude
+  if [[ $exclude == "y" ]]; then
+    read -p "Enter the path of the folders you want to exclude (separated by a space): " exclude_folder
+    exclude_folders=($exclude_folder)
+    for element in "${exclude_folders[@]}"
+    do
+      if [[ $element == $directory ]]; then
+        err=true
+        break
       fi
     done
+  fi
+  echo 
 
-    #esplorazione dei livelli sottostanti
+  text "italics" "" "Searching for " "-n"
+  text "bold" "" "'$filename' " "-n" 
+  text "italics" "" "starting from " "-n"
+  text "bold" "" "'$directory'" "-n"
+  text "italics" "" ";\nExcluding:\n" "-n"
+  for x in "${exclude_folders[@]}"
+  do
+    text "bold" "" "-$directory/$x" "-n"
+    echo ";"
+  done
+  text "bold" "" "-.git" "-n"
+  text "italics" "" "(default)"
+  text "bold" "" "-.cache" "-n"
+  text "italics" "" "(default)"
+  echo
+  read -p "proceed? (y) " correct
+  if [[ $correct == "y" ]]; then
+    break
+  fi
+done
+
+start_time=$(date +%s)
+if [[ ! -d "$directory" ]]; then
+  text "" "red" "Error: Directory not found: $directory"
+elif [[ $err == true ]]; then
+  text "" "red" "Error: You can't exclude the directory you are searching in"
+
+  #searching in the main directory
+else 
+  depth=$(awk -F/ '{print NF-1}' <<< "$directory")
+  echo -e "depth: $level "
+  cd "$directory"
+  output=$(ls -a)
+    for first in $output; do
+      if [[ $first != "." && $first != ".." && $first != ".git"  && $any != ".cache" ]]; then
+        ((count++))
+        if [ -f $first ]; then
+          if [[ $first == $filename ]]; then
+            file_path=$(pwd)/$first
+            text "" "green" "Found: $first\nPosition: $file_path"
+            break
+          fi
+        elif [[ -d $first ]]; then
+          cd_path=$(pwd)/$first
+          currentdir+=($cd_path)
+        fi
+      fi
+    done
+#searching in deeper levels
     while true
     do 
-    #controllo ogni cartella del livello corrente
-      for deep in "${currentdir[@]}"; do
-        cd $deep
-        output=$(ls -a)
-        #scan per il file e creazione nuovo livello di profondità in deeperdir
+      ((level++))
+      actual_depth=$((depth + level))
+      for folder in "${currentdir[@]}"; 
+      do
+        avoid=false
+
+        for pass in "${exclude_folders[@]}"; do
+          if [ "$pass" == "$folder" ]; then
+            avoid=true
+            text "" "yellow" "Avoiding: $folder"
+            sleep 1s
+          fi
+        done
+
+        if [[ $avoid == false ]]; then
+          cd $folder
+          output=$(ls -a)
           for any in $output; do
-            if [[ $any != "." && $any != ".." ]]; then
+            clear 
+            echo "dept: $level "
+            echo "checked elements: $count"
+            echo "current position: $folder"
+            for y in "${currentdir[@]}"
+            do
+              echo $y
+            done
+            sleep 1s
+            if [[ $any != "." && $any != ".." && $any != ".git"  && $any != ".cache" ]]; then
+              ((count++))
               if [[ -f $any && $any == $filename ]]; then
                 file_path=$(pwd)/$any
-                text "" "green" "Found: $any\nPosition: $file_path"
+                text "" "green" "\n\nFound: $any\nPosition: $file_path\n"
                 found=true
                 stop=true
                 break
               elif [[ -d $any ]]; then
                 cd_path=$(pwd)/$any
-                deeperdir+=($cd_path)
+                thisdepth=$(awk -F/ '{print NF-1}' <<< "$path")
+                if [[ $actual_depth -eq $thisdepth ]]; then
+                  currentdir+=($cd_path)
+                fi
               fi
             fi
           done
+        fi
+          
           if [[ $stop == true ]]; then
             break
           fi
       done
-#controllo se il livello di profondità successivo deeperdir è vuoto (fine ricerca)
       if [[ -z $deeperdir && $found == false ]]; then
         text "" "red" "File not found"
         stop=true
       else 
-      #imposto il livello appena creato a quello corrente da 
         for ((i=0; i<${#deeperdir[@]}; i++))
         do
             currentdir[$i]=${deeperdir[$i]}
@@ -102,13 +175,25 @@ else
         currentdir=$deeperdir
         deeperdir=()
       fi
-      #se il file è stato trovato o se non ci sono più livelli da analizzare, esco dal ciclo
       if [[ $stop == true ]]; then
         break
       fi
 
     done
+    end_time=$(date +%s)
+    duration=$((end_time - start_time))
+    echo "$duration"
 
 fi
 
-  
+
+#aggiungere possibilità di escludere cartelle dalla ricerca - 
+#aggiungere possibilità di visualizzare file trovati col nome simile
+#controllare differenza tra folder e path
+#controllare funzionamento di esclusione
+#sistemare output e provare 'clear'
+#trovare soluzione per fare tutto dentro al while
+#trasformare in funzione utilizzabile in altre cose 
+#codice si ripete probabilmente quando un ramo si esaurisce - fixed controllare
+
+
