@@ -128,30 +128,16 @@ do
       current_depth=$(awk -F/ '{print NF-1}' <<< "$folder")
       cd $folder
       ((folder_count++))
-      text "bold" "yellow" "ENTRO IN $folder"
       output=$(ls -a)
       for any in $output; do
         if [[ $any != "." && $any != ".." && $any != ".git"  && $any != ".cache" ]]; then
-          ((element_count++))                                                                                              
+          ((element_count++))          
+          clear                                                                                    
           echo "depth: $current_depth "
           echo "folders digged: $folder_count"
           echo "checked elements: $element_count"
           echo "current element: $any"
-          echo "current position: $folder"
-          echo -n "elementi currentdir:"
-          for y in "${currentdir[@]}"                                                                          
-          do                                                                                                   
-            echo -n " $y"                                                                                         
-          done 
-          echo   
-          echo -n "elementi deeperdir: "
-          for yy in "${deeperdir[@]}"                                                                          
-          do                                                                                                   
-            echo -n " $yy"                                                                                         
-          done                                                                                                
-          echo
-          echo
-          sleep 1s                                                                                             
+          echo "current position: $folder"                                                                                         
           if [[ -f $any && $any == $filename ]]; then                                                                                     
             file_path=$(pwd)/$any
             text "" "green" "\n\nFound: $any\nPosition: $file_path\n"
@@ -171,29 +157,19 @@ do
       fi
   done
 
-  text "bold" "yellow" "checking elements of currentdir and depths"
   currentdir=()
   for xx in "${deeperdir[@]}"; 
   do
     this_depth=$(awk -F/ '{print NF-1}' <<< "$xx")
-    echo $xx $this_depth
     if [[ $this_depth != $current_depth ]]; then 
       currentdir+=("$xx")
-      text "bold" "green" "added $xx"
     fi
   done
-  text "bold" "yellow" "ELEMENTI DI CURRENTDIR:"
-  for xxx in "${currentdir[@]}"; 
-  do 
-    echo $xxx
-  done
-  sleep 5s
   deeperdir=()
 
 
   if [[ -z $currentdir && $found == false ]]; then
     text "" "red" "File not found"
-    echo $found
     stop=true
   fi
   if [[ $stop == true ]]; then
@@ -210,6 +186,3 @@ text "" "blue" "scanned starting from " "-n"
 text "bold" "blue" "$directory" "-n"
 text "" "blue" " in " "-n" 
 text "bold" "blue" "$duration seconds"
-
-
-#currentdir viene implementata male: viene concatenato tutto al primo elemento
