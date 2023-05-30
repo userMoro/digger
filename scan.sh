@@ -140,7 +140,7 @@ do
           echo "current position: $folder"                                                                                         
           if [[ -f $any && $any == $filename ]]; then                                                                                     
             file_path=$(pwd)/$any
-            text "" "green" "\n\nFound: $any\nPosition: $file_path\n"
+            text "" "green" "\nFound: $any\nPosition: $file_path\n"
             found=true
             stop=true
             break
