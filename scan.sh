@@ -51,7 +51,6 @@ while true
 do
   if [[ ! -d "$directory" ]]; then
     exit 1 #argomento indica una cartella non esistente
-    break
   fi
   done
   for ((i=2; i<=$#; i++))
