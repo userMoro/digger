@@ -35,7 +35,6 @@ text() {
 }
 
 currentdir=()
-deeperdir=()
 stop=false
 found=false
 element_count=0
@@ -111,91 +110,57 @@ echo
  #-------------------------------------
 
 start_time=$(date +%s)
-  #searching in the main directory
+currentdir+=$directory
 
-current_depth=$(awk -F/ '{print NF-1}' <<< "$directory")
-#echo -e "depth: $current_depth "                                                                         
-#sleep 1s                                                                                                 
-text "bold" "yellow" "ENTRO IN $directory"
-cd "$directory"
-((folder_count++))
-output=$(ls -a)
-for first in $output; do
-  if [[ $first != "." && $first != ".." && $first != ".git"  && $any != ".cache" ]]; then
-    ((element_count++))
-    echo "depth: $current_depth "
-    echo "folders digged: $folder_count"
-    echo "checked elements: $element_count"
-    echo "element checked: $first"
-    echo "current position: $directory"
-    if [ -f $first ]; then
-      #echo "file $first"                                                                                 
-      if [[ $first == $filename ]]; then
-        file_path=$(pwd)/$first
-        text "" "green" "Found: $first\nPosition: $file_path"
-        break
-      fi
-    elif [[ -d $first ]]; then
-      #echo "folder $first"                                                                                   
-      cd_path=$(pwd)/$first
-      currentdir+=($cd_path)
-    fi
-  fi
-  #sleep 1s                                                                                                   
-done
-#searching in deeper levels
 while true
-do 
-  #actual_current_depth=$((current_depth + level))
-  #echo $level $current_depth $actual_current_depth                                                           
-  #sleep 2s                                                                                                   
+do                                                                                                 
   for folder in "${currentdir[@]}"; 
   do
     avoid=false
-    current_depth=$(awk -F/ '{print NF-1}' <<< "$folder")
-    for pass in "${exclude_folders[@]}"; do
-      #echo $pass , $folder                                                                                   
+    for pass in "${exclude_folders[@]}"; do                                                                             
       if [ "$pass" == "$folder" ]; then
         avoid=true
         text "" "yellow" "Avoiding: $folder"
         sleep 0.5s                                                                                              
       fi
-    done
-    #sleep 2s                                                                                                 
+    done                                                                                              
     if [[ $avoid == false ]]; then
+      current_depth=$(awk -F/ '{print NF-1}' <<< "$folder")
       cd $folder
       ((folder_count++))
       text "bold" "yellow" "ENTRO IN $folder"
       output=$(ls -a)
       for any in $output; do
         if [[ $any != "." && $any != ".." && $any != ".git"  && $any != ".cache" ]]; then
-          ((element_count++))
-          #clear                                                                                               
+          ((element_count++))                                                                                              
           echo "depth: $current_depth "
           echo "folders digged: $folder_count"
           echo "checked elements: $element_count"
-          echo "element checked: $any"
+          echo "current element: $any"
           echo "current position: $folder"
-          echo -n "elementi currentdir: "
+          echo -n "elementi currentdir:"
           for y in "${currentdir[@]}"                                                                          
           do                                                                                                   
             echo -n " $y"                                                                                         
-          done                                                                                                 
+          done 
+          echo   
+          echo -n "elementi deeperdir: "
+          for yy in "${deeperdir[@]}"                                                                          
+          do                                                                                                   
+            echo -n " $yy"                                                                                         
+          done                                                                                                
+          echo
           echo
           sleep 1s                                                                                             
-          if [[ -f $any && $any == $filename ]]; then
-            #echo "file"                                                                                       
+          if [[ -f $any && $any == $filename ]]; then                                                                                     
             file_path=$(pwd)/$any
             text "" "green" "\n\nFound: $any\nPosition: $file_path\n"
             found=true
             stop=true
             break
-          elif [[ -d $any ]]; then
-            #echo "cartella"                                                                                   
-            cd_path=$(pwd)/$any
-            #this_depth=$(awk -F/ '{print NF}' <<< "$path")                                                    
-            #echo $thiscurrent_depth                                                                                                                                                             
-            currentdir+=($cd_path)
+          elif [[ -d $any ]]; then                                                                                
+            cd_path=$(pwd)/$any                                                                                                                                                             
+            deeperdir+=($cd_path)
           fi
         fi
       done
@@ -207,26 +172,29 @@ do
   done
 
   text "bold" "yellow" "checking elements of currentdir and depths"
-  for xx in "${currentdir[@]}"; 
+  currentdir=()
+  for xx in "${deeperdir[@]}"; 
   do
     this_depth=$(awk -F/ '{print NF-1}' <<< "$xx")
     echo $xx $this_depth
     if [[ $this_depth != $current_depth ]]; then 
-      deeperdir+=$xx
+      currentdir+=("$xx")
+      text "bold" "green" "added $xx"
+    fi
   done
+  text "bold" "yellow" "ELEMENTI DI CURRENTDIR:"
+  for xxx in "${currentdir[@]}"; 
+  do 
+    echo $xxx
+  done
+  sleep 5s
+  deeperdir=()
 
 
-  if [[ -z $deeperdir && $found == false ]]; then
+  if [[ -z $currentdir && $found == false ]]; then
     text "" "red" "File not found"
     echo $found
     stop=true
-  else 
-    for ((i=0; i<${#deeperdir[@]}; i++))
-    do
-        currentdir[$i]=${deeperdir[$i]}
-    done
-    currentdir=$deeperdir
-    deeperdir=()
   fi
   if [[ $stop == true ]]; then
     break
@@ -235,21 +203,13 @@ do
 done
 end_time=$(date +%s)
 duration=$((end_time - start_time))
-text "blue" "" "$element_count elements from $directory scanned in $duration seconds"
+text "bold" "blue" "$element_count elements" "-n"
+text "" "blue" " from " "-n"
+text "bold" "blue" "$folder_count folders " "-n"
+text "" "blue" "scanned starting from " "-n"
+text "bold" "blue" "$directory" "-n"
+text "" "blue" " in " "-n" 
+text "bold" "blue" "$duration seconds"
 
 
-#aggiungere possibilità di visualizzare file trovati col nome simile
-
-#controllare funzionamento di esclusione
-#sistemare output e provare 'clear'
-#codice si ripete probabilmente quando un ramo si esaurisce - fixed controllare
-
-#trovare soluzione per fare tutto dentro al while
-#trasformare in funzione utilizzabile in altre cose
-
-#livelli: controllare assegnazione di depth e capire;
-# currentdir deve essere implementata quado il livello di profondità contato equivale a quello rilevato dal percorso
-# 
-
-
-#analizzare elementi di currentdir ed eliminare quelli con il livello inferiore
+#currentdir viene implementata male: viene concatenato tutto al primo elemento
