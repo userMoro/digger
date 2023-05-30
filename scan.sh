@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 text() {
   style=0
   if [[ "$1" == "bold" ]]; then
@@ -35,81 +36,36 @@ text() {
 }
 
 currentdir=()
+exclude_folders=()
 stop=false
 found=false
 element_count=0
 folder_count=0
+filename=$1
+directory=$2
 
 
- #-------------------------------------
+#-------------------------------------
 
 while true
 do
-  echo
-  read -p "Enter the name of the file you are looking for: " filename
-  while true 
-  do 
-    read -p "Enter the path of the directory where you want to start the research: " directory
-    if [[ ! -d "$directory" ]]; then
-      text "" "red" "Error: Directory not found"
-    else 
-      break
-    fi
-  done
-  echo
-  read -p "Do you want to exclude some folders from the research? (y) " exclude
-  if [[ $exclude == "y" ]]; then
-    exclude_folders=()
-    echo "Enter the path of each folder you want to exclude: " 
-    text "italics" "blue" "(press enter when you are done)\r"
-    while true
-    do 
-      echo -n "$directory"
-      read exclude_folder
-      if [[ $exclude_folder == '' ]]; then
-        text "italics" "green" "ok"
-        break
-      elif [[ $exclude_folder == $directory ]]; then 
-        text "italics" "red" "Error: Invalid path"
-        continue
-      fi
-      exclude_folder=$directory$exclude_folder
-      if [[ ! -d $exclude_folder ]]; then 
-        text "italics" "red" "Error: Invalid path"
-        continue
-      else
-        exclude_folders+=($exclude_folder)
-      fi
-    done
-  fi
-  echo 
-
-  text "italics" "" "Searching for " "-n"
-  text "bold" "" "'$filename' " "-n" 
-  text "italics" "" "starting from " "-n"
-  text "bold" "" "'$directory'" "-n"
-  text "italics" "" ";\nExcluding:\n" "-n"
-  for x in "${exclude_folders[@]}"
-  do
-    text "bold" "" "-$x" "-n"
-    echo ";"
-  done
-  text "bold" "" "-.git" "-n"
-  text "italics" "" "(default)"
-  text "bold" "" "-.cache" "-n"
-  text "italics" "" "(default)"
-  echo 
-  echo "confirm = y"
-  read -p "restart = [...] " correct
-  if [[ $correct == "y" ]]; then
+  if [[ ! -d "$directory" ]]; then
+    exit 1 #argomento indica una cartella non esistente
     break
   fi
-done
-echo
+  done
+  for ((i=2; i<=$#; i++))
+  do 
+    if [[ $exclude_folder == $directory ]]; then 
+      exit 2 #argomento vuole escludere cartella di partenza
+    elif [[ ! -d $exclude_folder ]]; then 
+      exit 1 #argomento indica una cartella non esistente
+    else
+      exclude_folders+=("${!i}")
+  done
 
- #-------------------------------------
+#-------------------------------------
 
-start_time=$(date +%s)
 currentdir+=$directory
 
 while true
@@ -119,9 +75,7 @@ do
     avoid=false
     for pass in "${exclude_folders[@]}"; do                                                                             
       if [ "$pass" == "$folder" ]; then
-        avoid=true
-        text "" "yellow" "Avoiding: $folder"
-        sleep 0.5s                                                                                              
+        avoid=true                                                                                          
       fi
     done                                                                                              
     if [[ $avoid == false ]]; then
@@ -130,17 +84,10 @@ do
       ((folder_count++))
       output=$(ls -a)
       for any in $output; do
-        if [[ $any != "." && $any != ".." && $any != ".git"  && $any != ".cache" ]]; then
-          ((element_count++))          
-          clear                                                                                    
-          echo "depth: $current_depth "
-          echo "folders digged: $folder_count"
-          echo "checked elements: $element_count"
-          echo "current element: $any"
-          echo "current position: $folder"                                                                                         
+        if [[ $any != "." && $any != ".." && $any != ".git"  && $any != ".cache" ]]; then                                                                                      
           if [[ -f $any && $any == $filename ]]; then                                                                                     
             file_path=$(pwd)/$any
-            text "" "green" "\nFound: $any\nPosition: $file_path\n"
+            export $file_path
             found=true
             stop=true
             break
@@ -169,7 +116,7 @@ do
 
 
   if [[ -z $currentdir && $found == false ]]; then
-    text "" "red" "File not found"
+    exit 3 #file specificato non trovato
     stop=true
   fi
   if [[ $stop == true ]]; then
@@ -177,12 +124,3 @@ do
   fi
 
 done
-end_time=$(date +%s)
-duration=$((end_time - start_time))
-text "bold" "blue" "$element_count elements" "-n"
-text "" "blue" " from " "-n"
-text "bold" "blue" "$folder_count folders " "-n"
-text "" "blue" "scanned starting from " "-n"
-text "bold" "blue" "$directory" "-n"
-text "" "blue" " in " "-n" 
-text "bold" "blue" "$duration seconds"
