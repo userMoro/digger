@@ -47,28 +47,29 @@ directory=$2
 
 #-------------------------------------
 
-while true
-do
-  if [[ ! -d "$directory" ]]; then
-    exit 1 #argomento indica una cartella non esistente
-  fi
-  done
+if [[ ! -d "$directory" ]]; then
+  exit 1 #argomento indica una cartella non esistente
+fi
+
+if [[ $# -ge 3 ]]; then
   for ((i=2; i<=$#; i++))
-  do 
-    if [[ $exclude_folder == $directory ]]; then 
-      exit 2 #argomento vuole escludere cartella di partenza
-    elif [[ ! -d $exclude_folder ]]; then 
-      exit 1 #argomento indica una cartella non esistente
+  do
+    if [[ $exclude_folder == $directory ]]; then
+      exit 2 # argomento vuole escludere cartella di partenza
+    elif [[ ! -d ${!i} ]]; then
+      exit 1 # argomento indica una cartella non esistente
     else
       exclude_folders+=("${!i}")
+    fi
   done
+fi
+
 
 #-------------------------------------
 
 currentdir+=$directory
-
-while true
-do                                                                                                 
+while true;
+  do                                                                                            
   for folder in "${currentdir[@]}"; 
   do
     avoid=false
@@ -86,7 +87,7 @@ do
         if [[ $any != "." && $any != ".." && $any != ".git"  && $any != ".cache" ]]; then                                                                                      
           if [[ -f $any && $any == $filename ]]; then                                                                                     
             file_path=$(pwd)/$any
-            export $file_path
+            echo $file_path
             found=true
             stop=true
             break
@@ -113,7 +114,6 @@ do
   done
   deeperdir=()
 
-
   if [[ -z $currentdir && $found == false ]]; then
     exit 3 #file specificato non trovato
     stop=true
@@ -121,5 +121,4 @@ do
   if [[ $stop == true ]]; then
     break
   fi
-
 done
