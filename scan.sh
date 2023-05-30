@@ -38,8 +38,6 @@ currentdir=()
 deeperdir=()
 stop=false
 found=false
-err=false
-level=1
 count=0
 
 while true
@@ -109,106 +107,104 @@ start_time=$(date +%s)
   #searching in the main directory
 
 depth=$(awk -F/ '{print NF-1}' <<< "$directory")
-echo -e "depth: $level "
+echo -e "depth: $depth "
 cd "$directory"
 output=$(ls -a)
-  for first in $output; do
-    if [[ $first != "." && $first != ".." && $first != ".git"  && $any != ".cache" ]]; then
-      ((count++))
-      if [ -f $first ]; then
-        echo "file $first"                                                                                 #
-        if [[ $first == $filename ]]; then
-          file_path=$(pwd)/$first
-          text "" "green" "Found: $first\nPosition: $file_path"
-          break
-        fi
-      elif [[ -d $first ]]; then
-        echo "folder $first"                                                                                   #
-        cd_path=$(pwd)/$first
-        currentdir+=($cd_path)
+for first in $output; do
+  if [[ $first != "." && $first != ".." && $first != ".git"  && $any != ".cache" ]]; then
+    ((count++))
+    if [ -f $first ]; then
+      #echo "file $first"                                                                                 #
+      if [[ $first == $filename ]]; then
+        file_path=$(pwd)/$first
+        text "" "green" "Found: $first\nPosition: $file_path"
+        break
       fi
+    elif [[ -d $first ]]; then
+      #echo "folder $first"                                                                                   #
+      cd_path=$(pwd)/$first
+      currentdir+=($cd_path)
     fi
-    sleep 1s                                                                                                      #
-  done
+  fi
+  #sleep 1s                                                                                                      #
+done
 #searching in deeper levels
-  while true
-  do 
-    ((level++))
-    actual_depth=$((depth + level))
-    echo $level $depth $actual_depth                                                                           #
-    sleep 2s                                                                                                   #
-    for folder in "${currentdir[@]}"; 
-    do
-      avoid=false
-
-      for pass in "${exclude_folders[@]}"; do
-        echo $pass , $folder                                                                                     #
-        if [ "$pass" == "$folder" ]; then
-          avoid=true
-          text "" "yellow" "Avoiding: $folder"
-          sleep 1s                                                                                              #
-        fi
-      done
-      sleep 2s                                                                                                 #
-      if [[ $avoid == false ]]; then
-        cd $folder
-        output=$(ls -a)
-        for any in $output; do
-          #clear 
-          echo "dept: $level "
-          echo "checked elements: $count"
-          echo "current position: $folder"
-          for y in "${currentdir[@]}"
-          do
-            echo $y
-          done
-          # sleep 1s
-          if [[ $any != "." && $any != ".." && $any != ".git"  && $any != ".cache" ]]; then
-            ((count++))
-            if [[ -f $any && $any == $filename ]]; then
-              echo "file"
-              file_path=$(pwd)/$any
-              text "" "green" "\n\nFound: $any\nPosition: $file_path\n"
-              found=true
-              stop=true
-              break
-            elif [[ -d $any ]]; then
-              echo "caltella"
-              cd_path=$(pwd)/$any
-              thisdepth=$(awk -F/ '{print NF}' <<< "$path")
-              echo $thisdepth                                                                                      #
-              if [[ $actual_depth -eq $thisdepth ]]; then
-                currentdir+=($cd_path)
-              fi
+while true
+do 
+  #actual_depth=$((depth + level))
+  #echo $level $depth $actual_depth                                                                           #
+  #sleep 2s                                                                                                   #
+  for folder in "${currentdir[@]}"; 
+  do
+    avoid=false
+    for pass in "${exclude_folders[@]}"; do
+      #echo $pass , $folder                                                                                     #
+      if [ "$pass" == "$folder" ]; then
+        avoid=true
+        text "" "yellow" "Avoiding: $folder"
+        sleep 0.5s                                                                                              
+      fi
+    done
+    #sleep 2s                                                                                                 #
+    if [[ $avoid == false ]]; then
+      cd $folder
+      output=$(ls -a)
+      for any in $output; do
+        #clear 
+        depth=$(awk -F/ '{print NF-1}' <<< "$folder")
+        echo "dept: $depth "
+        echo "checked elements: $count"
+        echo "current position: $folder"
+        #for y in "${currentdir[@]}"                                                                            #
+        #do                                                                                                     #
+        #  echo $y                                                                                              #
+        #done                                                                                                   #
+        # sleep 1s                                                                                              #
+        if [[ $any != "." && $any != ".." && $any != ".git"  && $any != ".cache" ]]; then
+          ((count++))
+          if [[ -f $any && $any == $filename ]]; then
+            #echo "file"                                                                                       #
+            file_path=$(pwd)/$any
+            text "" "green" "\n\nFound: $any\nPosition: $file_path\n"
+            found=true
+            stop=true
+            break
+          elif [[ -d $any ]]; then
+            #echo "caltella"                                                                                     #
+            cd_path=$(pwd)/$any
+            thisdepth=$(awk -F/ '{print NF}' <<< "$path")
+            #echo $thisdepth                                                                                    #                                                                                  #
+            if [[ $actual_depth -eq $thisdepth ]]; then
+              currentdir+=($cd_path)
             fi
           fi
-        done
-      fi
-        
-        if [[ $stop == true ]]; then
-          break
         fi
-    done
-    if [[ -z $deeperdir && $found == false ]]; then
-      text "" "red" "File not found"
-      stop=true
-    else 
-      for ((i=0; i<${#deeperdir[@]}; i++))
-      do
-          currentdir[$i]=${deeperdir[$i]}
       done
-      currentdir=$deeperdir
-      deeperdir=()
     fi
-    if [[ $stop == true ]]; then
-      break
-    fi
-
+      
+      if [[ $stop == true ]]; then
+        break
+      fi
   done
-  end_time=$(date +%s)
-  duration=$((end_time - start_time))
-  echo "$duration secondi"
-  text "blue" "" "$directory folder scanned in $duration seconds"
+  if [[ -z $deeperdir && $found == false ]]; then
+    text "" "red" "File not found"
+    stop=true
+  else 
+    for ((i=0; i<${#deeperdir[@]}; i++))
+    do
+        currentdir[$i]=${deeperdir[$i]}
+    done
+    currentdir=$deeperdir
+    deeperdir=()
+  fi
+  if [[ $stop == true ]]; then
+    break
+  fi
+
+done
+end_time=$(date +%s)
+duration=$((end_time - start_time))
+text "blue" "" "$count elements from $directory scanned in $duration seconds"
 
 
 #aggiungere possibilità di visualizzare file trovati col nome simile
